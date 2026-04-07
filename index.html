@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIT Parcel - Home</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main>
+        <div style="text-align: center; max-width: 800px; margin: 4rem auto;">
+            <h1 style="font-size: 3.5rem; color: var(--primary);">Welcome to VIT Parcel</h1>
+            <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 2rem;">
+                The community-based parcel pickup coordination system for VIT hostel students.
+                Save time and help your block mates!
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="register.html" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">Get
+                    Started</a>
+                <a href="login.html" class="btn btn-outline" style="font-size: 1.1rem; padding: 0.8rem 2rem;">Log In</a>
+            </div>
+
+            <div class="grid-cards" style="margin-top: 5rem; text-align: left;">
+                <div class="card">
+                    <h3 style="display: flex; align-items: center; gap: 10px;">📦 Request Pickups</h3>
+                    <p style="color: var(--text-muted);">Busy with classes? Request someone from your block to pick up
+                        your parcel from the gate.</p>
+                </div>
+                <div class="card">
+                    <h3 style="display: flex; align-items: center; gap: 10px;">🤝 Help Others</h3>
+                    <p style="color: var(--text-muted);">Going to the main gate anyway? Post your schedule and pick up
+                        parcels for your block mates.</p>
+                </div>
+                <div class="card">
+                    <h3 style="display: flex; align-items: center; gap: 10px;">⚡ Fast & Easy</h3>
+                    <p style="color: var(--text-muted);">Connect with people in your exact block for quick and
+                        convenient deliveries without any hassle.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireGuest(); // Redirect to dashboard if already logged in
+        });
+    </script>
+</body>
+
+</html>
