@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Pickup - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main style="display: flex; justify-content: center; align-items: start; padding-top: 2rem;">
+        <div class="card" style="width: 100%; max-width: 700px;" id="postDetails">
+            <div style="text-align: center; padding: 2rem;">Loading...</div>
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            const user = getCurrentUser();
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('postId');
+
+            if (!postId) {
+                document.getElementById('postDetails').innerHTML = '<h3 style="color: var(--danger); text-align: center;">Invalid Post ID</h3><a href="browse-posts.html" class="btn btn-outline" style="display: block; width: max-content; margin: 20px auto;">Back to Browse</a>';
+                return;
+            }
+
+            const post = DB.getPost(postId);
+            if (!post) {
+                document.getElementById('postDetails').innerHTML = '<h3 style="color: var(--danger); text-align: center;">Post Not Found</h3><a href="browse-posts.html" class="btn btn-outline" style="display: block; width: max-content; margin: 20px auto;">Back to Browse</a>';
+                return;
+            }
+
+            const isAuthor = post.authorId === user.username;
+            const existingRequest = DB.getRequestsByPost(postId).find(r => r.requesterId === user.username);
+
+            document.getElementById('postDetails').innerHTML = `
+                <div class="flex-between" style="border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem;">
+                    <h2>Pickup Details</h2>
+                    <span class="badge ${post.status === 'pending' ? 'badge-pending' : (post.status === 'accepted' ? 'badge-accepted' : 'badge-completed')}">${post.status}</span>
+                </div>
+                
+                <div class="grid-cols-1-2" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+                    <div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">Author</p>
+                        <p style="font-weight: 600; font-size: 1.1rem; margin-top: 0;">${post.authorName}</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">Pickup Time</p>
+                        <p style="font-weight: 600; font-size: 1.1rem; margin-top: 0;">${post.pickupTime}</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">Destination Block</p>
+                        <p style="font-weight: 600; font-size: 1.1rem; margin-top: 0; text-transform: uppercase;">${post.block.replace('-', ' ')}</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">Posted At</p>
+                        <p style="font-weight: 600; font-size: 1.1rem; margin-top: 0;">${formatTime(post.timestamp)}</p>
+                    </div>
+                </div>
+                
+                <div style="background: var(--bg-color); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 2rem;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">Notes / Instructions</p>
+                    <p style="margin-top: 0;">${post.notes}</p>
+                </div>
+                
+                <div id="actionArea" style="text-align: center; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    ${isAuthor
+                    ? `<p style="color: var(--text-muted);">This is your post. Manage it in <a href="my-pickups.html">My Pickups</a>.</p>`
+                    : (post.status !== 'pending' && !existingRequest
+                        ? `<p style="color: var(--danger);">This pickup is no longer accepting requests.</p>`
+                        : (existingRequest
+                            ? `<div class="card" style="background: var(--bg-color); border: 1px solid var(--primary); text-align: left;">
+                                    <h4 style="color: var(--primary); margin-top:0;">Your Request Status: ${existingRequest.status.toUpperCase()}</h4>
+                                    <p style="margin-bottom: 0;">Parcel: ${existingRequest.parcelDetails}</p>
+                                   </div>`
+                            : `
+                                <form id="requestForm" style="text-align: left;">
+                                    <div class="form-group">
+                                        <label for="parcelDetails">Describe your parcel (Name, OTP, Size, etc.)</label>
+                                        <textarea id="parcelDetails" rows="3" required placeholder="E.g., Amazon package for Akshit Gupta. OTP is 1234."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-block">Request This Pickup</button>
+                                </form>
+                                `
+                        )
+                    )
+                }
+                </div>
+            `;
+
+            const reqForm = document.getElementById('requestForm');
+            if (reqForm) {
+                reqForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const details = document.getElementById('parcelDetails').value;
+
+                    DB.saveRequest({
+                        postId: post.id,
+                        requesterId: user.username,
+                        requesterName: user.name,
+                        parcelDetails: details,
+                        status: 'pending',
+                        timestamp: Date.now()
+                    });
+
+                    // Add notification to author
+                    DB.addNotification(
+                        post.authorId,
+                        `${user.name} has requested you to pick up a parcel.`,
+                        'info',
+                        `my-pickups.html`
+                    );
+
+                    alert('Request sent successfully!');
+                    location.reload();
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

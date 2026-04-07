@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main style="max-width: 800px; margin: 0 auto; width: 100%;">
+        <div class="flex-between" style="margin-bottom: var(--spacing-lg);">
+            <h2>Notifications</h2>
+            <button class="btn btn-outline" id="markReadBtn" style="padding: 0.3rem 0.8rem; font-size: 0.9rem;">Mark all
+                as read</button>
+        </div>
+
+        <div id="notifList" style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            <!-- Dynamically populated -->
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            const user = getCurrentUser();
+
+            function renderNotifs() {
+                const notifs = DB.getNotifications(user.username).reverse();
+
+                if (notifs.length === 0) {
+                    document.getElementById('notifList').innerHTML = '<div class="card" style="text-align: center; color: var(--text-muted); padding: 3rem;">No notifications.</div>';
+                    return;
+                }
+
+                document.getElementById('notifList').innerHTML = notifs.map(n => `
+                    <a href="${n.link}" style="display: block; text-decoration: none; color: inherit; transition: opacity 0.2s ease;">
+                        <div class="card" style="border-left: 4px solid ${n.read ? 'var(--border)' : 'var(--primary)'}; opacity: ${n.read ? 0.7 : 1}; padding: var(--spacing-md) var(--spacing-lg);">
+                            <div class="flex-between">
+                                <span style="color: ${n.type === 'success' ? 'var(--success)' : 'var(--text-main)'}; font-weight: 500;">
+                                    ${n.message}
+                                </span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">${getRelativeTime(n.timestamp)}</span>
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+            }
+
+            renderNotifs();
+
+            document.getElementById('markReadBtn').addEventListener('click', () => {
+                DB.markNotificationsRead(user.username);
+                renderNotifs();
+                renderNavbar(); // update badge
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Community - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main>
+        <div
+            style="background: var(--primary); color: white; padding: 2rem; border-radius: var(--radius); margin-bottom: 2rem;">
+            <h1 style="color:white; margin: 0;" id="blockTitle">Local Block Community</h1>
+            <p style="margin-bottom:0; opacity: 0.9;">See who is picking up parcels for your block.</p>
+        </div>
+
+        <div class="flex-between" style="margin-bottom: 1rem;">
+            <h2>Available Pickups</h2>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <label for="blockSelect" style="margin: 0; font-weight: normal;">Change Block:</label>
+                <select id="blockSelect"
+                    style="padding: 0.4rem; border-radius: var(--radius-sm); border: 1px solid var(--border);"></select>
+                <a href="browse-posts.html" class="btn btn-outline" style="padding: 0.4rem 1rem;">See All</a>
+            </div>
+        </div>
+
+        <div id="postsGrid" class="grid-cards">
+            <!-- Dynamically populated -->
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            populateBlockOptions('blockSelect');
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const user = getCurrentUser();
+            let currentBlockParam = urlParams.get('id');
+
+            if (!currentBlockParam) {
+                currentBlockParam = user.block.split('-')[1]; // block-a -> a
+            }
+
+            const currentBlockId = `block-${currentBlockParam.toLowerCase()}`;
+            const displayLetter = currentBlockParam.toUpperCase();
+
+            document.getElementById('blockTitle').textContent = `Block ${displayLetter} Community`;
+            document.getElementById('blockSelect').value = currentBlockId;
+
+            document.getElementById('blockSelect').addEventListener('change', (e) => {
+                const newBlockStr = e.target.value.split('-')[1];
+                window.location.href = `block.html?id=${newBlockStr}`;
+            });
+
+            const postsGrid = document.getElementById('postsGrid');
+            const posts = DB.getPosts().reverse().filter(p => p.block === currentBlockId);
+
+            if (posts.length === 0) {
+                postsGrid.innerHTML = `<div class="card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem;">No upcoming pickups for Block ${displayLetter}. <a href="create-post.html">Post one now</a>!</div>`;
+                return;
+            }
+
+            postsGrid.innerHTML = posts.map(p => `
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div class="flex-between" style="margin-bottom: 15px;">
+                        <span class="badge ${p.status === 'pending' ? 'badge-pending' : (p.status === 'accepted' ? 'badge-accepted' : 'badge-completed')}">${p.status}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${getRelativeTime(p.timestamp)}</span>
+                    </div>
+                    <h3 style="margin-bottom: 5px; font-size: 1.25rem;">${p.authorName}</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0; font-weight: 500;">⏱ Heading to Gate at ${p.pickupTime}</p>
+                    <p style="flex: 1; margin: 15px 0;">${p.notes}</p>
+                    
+                    <div style="text-align: right; border-top: 1px solid var(--border); padding-top: 15px; margin-top: auto;">
+                        <a href="request-page.html?postId=${p.id}" class="btn btn-primary" style="padding: 0.4rem 1rem;">View Details</a>
+                    </div>
+                </div>
+            `).join('');
+        });
+    </script>
+</body>
+
+</html>

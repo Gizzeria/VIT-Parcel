@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Requests - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main>
+        <h2>Pickups Requested by Me</h2>
+        <p style="color: var(--text-muted); margin-bottom: var(--spacing-lg);">Parcels you asked someone else to pick up
+            for you.</p>
+
+        <div id="myRequestsList" class="grid-cards"
+            style="grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));">
+            <!-- Dynamically populated -->
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            const user = getCurrentUser();
+
+            const myRequests = DB.getRequestsByUser(user.username).reverse();
+            const allPosts = DB.getPosts();
+
+            if (myRequests.length === 0) {
+                document.getElementById('myRequestsList').innerHTML = '<div class="card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem;">You haven\'t requested any pickups. <a href="browse-posts.html">Find a pickup to request</a>.</div>';
+                return;
+            }
+
+            document.getElementById('myRequestsList').innerHTML = myRequests.map(r => {
+                const post = allPosts.find(p => p.id == r.postId);
+                const postInfo = post ? `by ${post.authorName} at ${post.pickupTime}` : 'Unknown Pickup';
+
+                return `
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div class="flex-between" style="margin-bottom: 15px;">
+                        <span class="badge ${r.status === 'pending' ? 'badge-pending' : (r.status === 'accepted' ? 'badge-accepted' : (r.status === 'completed' ? 'badge-completed' : ''))}" style="${r.status === 'rejected' ? 'background: var(--danger); color: white;' : ''}">${r.status}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${formatTime(r.timestamp)}</span>
+                    </div>
+                    <h3 style="margin-bottom: 5px; font-size: 1.1rem;">Request to ${post ? post.authorName : 'Deleted Post'}</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0;">Associated with pickup at ${post ? post.pickupTime : '--'}</p>
+                    
+                    <div style="background: var(--bg-color); padding: 10px; border-radius: var(--radius-sm); margin: 15px 0; border: 1px solid var(--border); flex: 1;">
+                        <p style="margin: 0; font-size: 0.9rem;"><strong>Parcel Details:</strong><br/>${r.parcelDetails}</p>
+                    </div>
+                    
+                    ${r.status === 'pending' ? '<p style="color: var(--warning); font-size: 0.85rem; margin-bottom:0; font-weight: 500;">Waiting for host to accept.</p>' : ''}
+                    ${r.status === 'accepted' ? `<p style="color: var(--primary); font-size: 0.85rem; margin-bottom:0; font-weight: 500;">Host has accepted! Contact ${post ? post.authorName : 'them'} if needed.</p>` : ''}
+                    ${r.status === 'completed' ? '<p style="color: var(--success); font-size: 0.85rem; margin-bottom:0; font-weight: 500;">Parcel delivered successfully!</p>' : ''}
+                    ${r.status === 'rejected' ? '<p style="color: var(--danger); font-size: 0.85rem; margin-bottom:0; font-weight: 500;">Host was unable to accept this request.</p>' : ''}
+                </div>
+            `}).join('');
+        });
+    </script>
+</body>
+
+</html>

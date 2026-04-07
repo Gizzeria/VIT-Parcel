@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accepted Requests - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main>
+        <h2>Requests You've Accepted To Pick Up</h2>
+        <p style="color: var(--text-muted); margin-bottom: var(--spacing-lg);">Parcels you've committed to deliver to
+            others.</p>
+
+        <div id="acceptedList" class="grid-cards" style="grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));">
+            <!-- Dynamically populated -->
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            const user = getCurrentUser();
+            const myPosts = DB.getPosts().filter(p => p.authorId === user.username);
+            const postIds = myPosts.map(p => p.id);
+
+            const allRequestsToMe = DB.getRequests().filter(r => postIds.includes(r.postId));
+            const acceptedRequests = allRequestsToMe.filter(r => r.status === 'accepted' || r.status === 'completed');
+
+            if (acceptedRequests.length === 0) {
+                document.getElementById('acceptedList').innerHTML = '<div class="card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem;">You have not accepted any requests yet. Check <a href="my-pickups.html">My Pickups</a> to manage incoming requests.</div>';
+                return;
+            }
+
+            document.getElementById('acceptedList').innerHTML = acceptedRequests.reverse().map(r => {
+                const post = myPosts.find(p => p.id == r.postId);
+                return `
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div class="flex-between" style="margin-bottom: 10px;">
+                        <span class="badge ${r.status === 'completed' ? 'badge-completed' : 'badge-accepted'}">${r.status}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${formatTime(r.timestamp)}</span>
+                    </div>
+                    <h3 style="margin-bottom: 5px;">Delivery for ${r.requesterName}</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Associated with your pickup at ${post.pickupTime}</p>
+                    <div style="background: var(--bg-color); padding: 10px; border-radius: var(--radius-sm); margin: 15px 0; flex: 1;">
+                        <p style="margin: 0; font-size: 0.95rem;"><strong>Parcel Details:</strong><br/>${r.parcelDetails}</p>
+                    </div>
+                    
+                    ${r.status === 'accepted' ? `
+                    <button class="btn btn-primary btn-block" onclick="markCompleted(${r.id})">Mark as Completed</button>
+                    ` : `
+                    <button class="btn btn-outline btn-block" disabled style="background:var(--bg-color); border:none; opacity: 0.5;">✔ Delivered</button>
+                    `}
+                </div>
+            `}).join('');
+
+            window.markCompleted = function (reqId) {
+                if (confirm("Are you sure you have delivered this parcel?")) {
+                    const req = DB.getRequests().find(r => r.id == reqId);
+                    if (req) {
+                        req.status = 'completed';
+                        DB.updateRequest(req);
+                        DB.addNotification(req.requesterId, `Your parcel has been delivered by ${user.name}!`, 'success', 'my-requests.html');
+                        location.reload();
+                    }
+                }
+            };
+        });
+    </script>
+</body>
+
+</html>

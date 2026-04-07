@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Pickups - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main>
+        <h2>My Hosted Pickups</h2>
+        <p style="color: var(--text-muted); margin-bottom: var(--spacing-lg);">Schedules where you offered to pick up
+            parcels.</p>
+
+        <div id="myPickupsList" class="grid-cards"
+            style="grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));">
+            <!-- Dynamically populated -->
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            const user = getCurrentUser();
+
+            const myPosts = DB.getPosts().filter(p => p.authorId === user.username).reverse();
+            const allRequests = DB.getRequests();
+
+            if (myPosts.length === 0) {
+                document.getElementById('myPickupsList').innerHTML = '<div class="card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem;">You haven\'t posted any pickups yet. <a href="create-post.html">Post one now</a>.</div>';
+                return;
+            }
+
+            document.getElementById('myPickupsList').innerHTML = myPosts.map(post => {
+                const reqs = allRequests.filter(r => r.postId == post.id);
+
+                let requestsHtml = '';
+                if (reqs.length === 0) {
+                    requestsHtml = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin: 15px 0;">No requests yet.</p>';
+                } else {
+                    requestsHtml = reqs.map(r => `
+                        <div style="background: var(--bg-color); padding: 10px; border-radius: var(--radius-sm); margin: 10px 0; font-size: 0.9rem; border: 1px solid var(--border);">
+                            <div class="flex-between" style="margin-bottom: 5px;">
+                                <strong>${r.requesterName}</strong>
+                                <span class="badge ${r.status === 'pending' ? 'badge-pending' : (r.status === 'accepted' ? 'badge-accepted' : 'badge-completed')}" style="font-size: 0.65rem;">${r.status}</span>
+                            </div>
+                            <p style="margin: 0 0 10px 0; color: var(--text-muted);">${r.parcelDetails}</p>
+                            ${r.status === 'pending' ? `
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="btn btn-primary" onclick="acceptReq(${r.id})" style="padding: 0.3rem 0.6rem; flex: 1;">Accept</button>
+                                    <button class="btn btn-outline" onclick="rejectReq(${r.id})" style="padding: 0.3rem 0.6rem; flex: 1; border-color: var(--danger); color: var(--danger);">Reject</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('');
+                }
+
+                return `
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div class="flex-between" style="margin-bottom: 10px;">
+                        <span class="badge ${post.status === 'pending' ? 'badge-pending' : (post.status === 'accepted' ? 'badge-accepted' : 'badge-completed')}">${post.status}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${getRelativeTime(post.timestamp)}</span>
+                    </div>
+                    <h3 style="margin-bottom: 5px;">Pickup at ${post.pickupTime}</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Heading to ${post.block.replace('-', ' ')}</p>
+                    
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 5px; margin-top: 15px; font-size: 1rem;">Requests</h4>
+                        <div style="border-top: 1px dashed var(--border); padding-top: 5px;">
+                            ${requestsHtml}
+                        </div>
+                    </div>
+                    
+                    ${post.status === 'pending' ? `
+                    <button class="btn btn-outline btn-block" style="margin-top: 15px;" onclick="closePickup(${post.id})">Stop Taking Requests</button>
+                    ` : ''}
+                </div>
+            `}).join('');
+
+            window.acceptReq = function (reqId) {
+                const req = DB.getRequests().find(r => r.id == reqId);
+                if (req) {
+                    req.status = 'accepted';
+                    DB.updateRequest(req);
+                    DB.addNotification(req.requesterId, `${user.name} accepted your pickup request!`, 'success', 'my-requests.html');
+                    location.reload();
+                }
+            };
+
+            window.rejectReq = function (reqId) {
+                if (confirm("Are you sure you want to reject this request?")) {
+                    const req = DB.getRequests().find(r => r.id == reqId);
+                    if (req) {
+                        req.status = 'rejected';
+                        DB.updateRequest(req);
+                        DB.addNotification(req.requesterId, `${user.name} declined to pick up your parcel.`, 'danger', 'my-requests.html');
+                        location.reload();
+                    }
+                }
+            };
+
+            window.closePickup = function (postId) {
+                const post = DB.getPost(postId);
+                if (post) {
+                    post.status = 'accepted';
+                    DB.updatePost(post);
+                    location.reload();
+                }
+            };
+        });
+    </script>
+</body>
+
+</html>

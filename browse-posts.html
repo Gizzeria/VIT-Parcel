@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Posts - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main>
+        <div class="flex-between" style="margin-bottom: var(--spacing-lg);">
+            <h2>Browse Pickups</h2>
+            <div style="display: flex; gap: 10px;">
+                <select id="filterBlock"
+                    style="padding: 0.4rem; border-radius: var(--radius-sm); border: 1px solid var(--border);"></select>
+                <select id="filterTime"
+                    style="padding: 0.4rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <option value="all">Time: All</option>
+                    <option value="upcoming">Time: Upcoming</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="postsGrid" class="grid-cards">
+            <!-- Dynamically populated -->
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            populateBlockOptions('filterBlock', true);
+
+            const filterBlock = document.getElementById('filterBlock');
+            const filterTime = document.getElementById('filterTime');
+            const postsGrid = document.getElementById('postsGrid');
+
+            // Pre-select user's block
+            filterBlock.value = getCurrentUser().block;
+
+            function renderPosts() {
+                const posts = DB.getPosts().reverse(); // Newest first
+                const blockVal = filterBlock.value;
+                const timeVal = filterTime.value;
+
+                const filtered = posts.filter(p => {
+                    if (blockVal !== 'all' && p.block !== blockVal) return false;
+                    // Real app would filter logic here. 
+                    return true;
+                });
+
+                if (filtered.length === 0) {
+                    postsGrid.innerHTML = '<div class="card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem;">No posts found matching the filters. Be the first to <a href="create-post.html">post a pickup</a>!</div>';
+                    return;
+                }
+
+                postsGrid.innerHTML = filtered.map(p => `
+                    <div class="card" style="display: flex; flex-direction: column;">
+                        <div class="flex-between" style="margin-bottom: 15px;">
+                            <span class="badge ${p.status === 'pending' ? 'badge-pending' : (p.status === 'accepted' ? 'badge-accepted' : 'badge-completed')}">${p.status}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">${getRelativeTime(p.timestamp)}</span>
+                        </div>
+                        <h3 style="margin-bottom: 5px; font-size: 1.25rem;">${p.authorName}</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0; font-weight: 500;">⏱ Heading to Gate at ${p.pickupTime}</p>
+                        <p style="flex: 1; margin: 15px 0;">${p.notes}</p>
+                        
+                        <div class="flex-between" style="align-items: center; border-top: 1px solid var(--border); padding-top: 15px; margin-top: auto;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+                                ${p.block.replace('-', ' ')}
+                            </span>
+                            <a href="request-page.html?postId=${p.id}" class="btn btn-primary" style="padding: 0.4rem 1rem;">View Details</a>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            filterBlock.addEventListener('change', renderPosts);
+            filterTime.addEventListener('change', renderPosts);
+
+            renderPosts();
+        });
+    </script>
+</body>
+
+</html>

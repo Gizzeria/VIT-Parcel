@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - VIT Parcel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <main style="max-width: 600px; margin: 0 auto; width: 100%;">
+        <div class="card">
+            <h2 style="text-align: center;">Edit Profile</h2>
+
+            <form id="editProfileForm">
+                <div class="form-group">
+                    <label>Registration Number (Cannot be changed)</label>
+                    <input type="text" id="regNo" disabled
+                        style="background: var(--bg-color); cursor: not-allowed; opacity: 0.7;">
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" required>
+                </div>
+
+                <div class="form-group grid-cols-1-2" style="grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                    <div>
+                        <label for="block">Hostel Block</label>
+                        <select id="block" required></select>
+                    </div>
+                    <div>
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top: 15px;">Save Changes</button>
+                <a href="profile.html" class="btn btn-outline btn-block" style="margin-top: 10px;">Cancel</a>
+            </form>
+        </div>
+    </main>
+    <div id="footer-container"></div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireAuth();
+            populateBlockOptions('block');
+            const user = getCurrentUser();
+
+            document.getElementById('regNo').value = user.username;
+            document.getElementById('name').value = user.name;
+            document.getElementById('block').value = user.block;
+            document.getElementById('phone').value = user.phone;
+
+            document.getElementById('editProfileForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                user.name = document.getElementById('name').value;
+                user.block = document.getElementById('block').value;
+                user.phone = document.getElementById('phone').value;
+
+                const users = DB.getUsers();
+                const index = users.findIndex(u => u.username === user.username);
+                if (index > -1) {
+                    users[index] = user;
+                    localStorage.setItem('vp_users', JSON.stringify(users));
+                }
+
+                alert('Profile updated successfully!');
+                window.location.href = 'profile.html';
+            });
+        });
+    </script>
+</body>
+
+</html>
